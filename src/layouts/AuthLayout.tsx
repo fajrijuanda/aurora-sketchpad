@@ -22,7 +22,7 @@ export const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
                 {/* Left Side - Mascot & Welcome */}
                 <div className="hidden md:flex flex-col items-center text-center space-y-6">
                     <div className="relative w-64 h-64 animate-float">
-                        <img src={mascotImage} alt="Mascot" className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(0,240,255,0.3)]" />
+                        <img src={mascotImage} alt="Mascot" className="w-full h-full object-contain drop-shadow-[0_0_20px_rgba(0,240,255,0.3)] scale-x-[-1]" />
                     </div>
                     <div>
                         <h2 className="text-3xl font-bold text-white mb-2">Welcome Back!</h2>

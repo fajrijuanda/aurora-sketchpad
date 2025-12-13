@@ -204,7 +204,7 @@ export const DashboardPage = () => {
                 <img
                     src={mascotImage}
                     alt="Helper"
-                    className="w-32 h-32 object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.3)] opacity-80"
+                    className="w-32 h-32 object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.3)] opacity-80 scale-x-[-1]"
                 />
             </div>
         </div>

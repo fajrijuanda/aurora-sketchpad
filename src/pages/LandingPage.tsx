@@ -80,7 +80,7 @@ export const LandingPage = () => {
                         <img
                             src={mascotImage}
                             alt="Mascot"
-                            className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(0,240,255,0.4)]"
+                            className="w-full h-full object-contain drop-shadow-[0_0_30px_rgba(0,240,255,0.4)] scale-x-[-1]"
                         />
                     </div>
                 </div>

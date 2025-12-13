@@ -14,8 +14,6 @@ export const LoginPage = () => {
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState('');
-
     // Check for token from OAuth redirect
     React.useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -26,13 +24,16 @@ export const LoginPage = () => {
             localStorage.setItem('token', token);
             navigate('/dashboard');
         } else if (errorParam) {
-            setError('Authentication failed. Please try again.');
+            showAlert({
+                type: 'danger',
+                title: 'Authentication Error',
+                message: 'Authentication failed. Please try again.'
+            });
         }
-    }, [navigate]);
+    }, [navigate, showAlert]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
 
         try {

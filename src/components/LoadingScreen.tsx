@@ -16,7 +16,7 @@ export const LoadingScreen = () => {
                     <img
                         src={mascotImage}
                         alt="Loading Mascot"
-                        className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.3)] scale-x-[-1]"
+                        className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.3)]"
                     />
 
                     {/* Ring orbit effect (CSS only for now) */}

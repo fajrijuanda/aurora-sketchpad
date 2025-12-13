@@ -1,246 +1,282 @@
-import React, { useState } from 'react';
-import { GlassCard } from '../components/ui/GlassCard';
-import { Stage, Layer, Line } from 'react-konva';
-import {
-    Pencil, Eraser, Move, Palette, Layers,
-    Download, Save, FilePlus,
-    Undo, Redo, ZoomIn, ZoomOut
-} from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
+import { Search, Plus, Grid, List, Clock, Folder, MoreHorizontal, FileText, ChevronDown, User, Settings, LogOut, Layout } from 'lucide-react';
 import clsx from 'clsx';
-import mascotImage from '../assets/images/mascot_chibi.png';
-
-// Types for drawing tool
-type Tool = 'pen' | 'eraser';
-
-interface Line {
-    tool: Tool;
-    points: number[];
-    color: string;
-    width: number;
-}
+import { useAlert } from '../context/AlertContext';
 
 export const DashboardPage = () => {
-    const [tool, setTool] = useState<Tool>('pen');
-    const [lines, setLines] = useState<Line[]>([]);
-    const isDrawing = React.useRef(false);
-    const [color, setColor] = useState('#00F0FF'); // Default Cyan
-    const [width, setWidth] = useState(5);
+    const navigate = useNavigate();
+    const { showAlert } = useAlert();
+    const [view, setView] = useState<'grid' | 'list'>('grid');
+    const [projects, setProjects] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState<any>(null);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
-    // Canvas dimensions (would typically be dynamic or resize observer)
-    const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+    useEffect(() => {
+        // Load user from local storage (set during login)
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
 
-    React.useEffect(() => {
-        const handleResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight });
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        if (!token) {
+            navigate('/login');
+            return;
+        }
 
-    const handleMouseDown = (e: any) => {
-        isDrawing.current = true;
-        const pos = e.target.getStage().getPointerPosition();
-        setLines([...lines, { tool, points: [pos.x, pos.y], color, width }]);
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+
+        fetchProjects();
+
+        // Close dropdown when clicking outside
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [navigate]);
+
+    const fetchProjects = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:3001/api/projects', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setProjects(data);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleMouseMove = (e: any) => {
-        if (!isDrawing.current) return;
-        const stage = e.target.getStage();
-        const point = stage.getPointerPosition();
-        let lastLine = lines[lines.length - 1];
-        // add point
-        lastLine.points = lastLine.points.concat([point.x, point.y]);
+    const handleCreateProject = async () => {
+        const name = prompt("Enter project name:", "Untitled Project");
+        if (!name) return;
 
-        // replace last
-        lines.splice(lines.length - 1, 1, lastLine);
-        setLines(lines.concat());
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('http://localhost:3001/api/projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ name })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                navigate(`/editor/${data.id}`);
+            }
+        } catch (err) {
+            console.error("Failed to create project", err);
+        }
     };
 
-    const handleMouseUp = () => {
-        isDrawing.current = false;
-    };
-
-    const stageRef = React.useRef<any>(null);
-
-    const handleExport = () => {
-        if (!stageRef.current) return;
-        const uri = stageRef.current.toDataURL();
-        const link = document.createElement('a');
-        link.download = 'aurora-drawing.png';
-        link.href = uri;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const handleLogout = () => {
+        showAlert({
+            type: 'danger',
+            title: 'Log out?',
+            message: 'Are you sure you want to log out of your account?',
+            confirmText: 'Yes, Log out',
+            cancelText: 'Cancel',
+            onConfirm: () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/');
+            }
+        });
     };
 
     return (
-        <div className="relative w-full h-screen overflow-hidden bg-[#1a1a2e]">
-            {/* Background Grid - Aesthetic Only */}
-            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none"
-                style={{
-                    backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
-                    backgroundSize: '40px 40px'
-                }}
-            />
+        <div className="min-h-screen flex bg-[#0f0f13] text-white font-sans overflow-hidden">
+            {/* Sidebar */}
+            <aside className="w-64 border-r border-white/5 flex flex-col p-4 bg-black/20 relative">
+                {/* User Profile Dropdown Trigger */}
+                <div
+                    className="flex items-center gap-2 px-2 py-4 mb-6 cursor-pointer hover:bg-white/5 rounded-lg transition-colors relative"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center font-bold text-black overflow-hidden">
+                        {user?.avatar ? <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" /> : (user?.name?.[0] || 'U')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="font-bold text-sm truncate">{user?.name || 'User'}</div>
+                        <div className="text-xs text-gray-500">Free Team</div>
+                    </div>
+                    <ChevronDown size={14} className="text-gray-500" />
+                </div>
 
-            {/* Canvas Layer */}
-            <Stage
-                ref={stageRef}
-                width={dimensions.width}
-                height={dimensions.height}
-                onMouseDown={handleMouseDown}
-                onMousemove={handleMouseMove}
-                onMouseup={handleMouseUp}
-                onTouchStart={handleMouseDown}
-                onTouchMove={handleMouseMove}
-                onTouchEnd={handleMouseUp}
-                className="cursor-crosshair z-0"
-            >
-                <Layer>
-                    {lines.map((line, i) => (
-                        <Line
-                            key={i}
-                            points={line.points}
-                            stroke={line.tool === 'eraser' ? '#1a1a2e' : line.color} // Eraser masks with bg color (simple impl)
-                            strokeWidth={line.width}
-                            tension={0.5}
-                            lineCap="round"
-                            lineJoin="round"
-                            globalCompositeOperation={
-                                line.tool === 'eraser' ? 'destination-out' : 'source-over'
-                            }
-                        />
-                    ))}
-                </Layer>
-            </Stage>
+                {/* Dropdown Menu */}
+                {dropdownOpen && (
+                    <div ref={dropdownRef} className="absolute top-16 left-4 w-60 bg-[#1e1e24] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-white/5 flex flex-col items-center gap-2">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-500 p-0.5">
+                                <div className="w-full h-full rounded-full bg-[#1e1e24] p-0.5 overflow-hidden">
+                                    {user?.avatar ? <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover rounded-full" /> : <div className="w-full h-full bg-gray-700" />}
+                                </div>
+                            </div>
+                            <div className="text-center">
+                                <div className="font-bold text-sm text-white">{user?.name}</div>
+                                <button className="text-xs text-gray-400 hover:text-white">Edit profile</button>
+                            </div>
+                        </div>
+                        <div className="py-2">
+                            <DropdownItem icon={<Layout size={16} />} label="Theme" />
+                            <DropdownItem icon={<Settings size={16} />} label="Settings" />
+                        </div>
+                        <div className="py-2 border-t border-white/5">
+                            <DropdownItem icon={<User size={16} />} label="Create a community profile" subtitle={user?.email} />
+                        </div>
+                        <div className="py-2 border-t border-white/5">
+                            <DropdownItem icon={<Plus size={16} />} label="Add account" />
+                        </div>
+                        <div className="py-2 border-t border-white/5">
+                            <DropdownItem icon={<LogOut size={16} />} label="Log out" onClick={handleLogout} />
+                        </div>
+                    </div>
+                )}
 
-            {/* --- GUI PANELS (FLOATING) --- */}
+                <div className="space-y-1">
+                    <SidebarItem icon={<Clock size={18} />} label="Recents" active />
+                    <SidebarItem icon={<Folder size={18} />} label="Drafts" />
+                    <SidebarItem icon={<Grid size={18} />} label="All projects" />
+                </div>
 
-            {/* Top Bar: Menu & Project Info */}
-            <header className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none z-20">
-                <GlassCard className="pointer-events-auto flex items-center gap-4 py-2 px-4 !rounded-full">
-                    <div className="w-8 h-8 rounded-full border-2 border-primary animate-spin-slow" />
-                    <span className="font-bold text-white tracking-wider">UNTITLED-1</span>
-                    <div className="h-4 w-[1px] bg-white/20 mx-2" />
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><FilePlus size={18} /></button>
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Save size={18} /></button>
-                    <button onClick={handleExport} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Export as PNG"><Download size={18} /></button>
-                </GlassCard>
+                <div className="mt-8">
+                    <div className="px-3 text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">Community</div>
+                    <SidebarItem icon={<Search size={18} />} label="Explore" />
+                </div>
 
-                <GlassCard className="pointer-events-auto flex items-center gap-2 py-2 px-4 !rounded-full">
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Zoom Out"><ZoomOut size={18} /></button>
-                    <span className="text-sm font-mono w-12 text-center">100%</span>
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Zoom In"><ZoomIn size={18} /></button>
-                </GlassCard>
-            </header>
-
-            {/* Left Sidebar: Tools */}
-            <GlassCard className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 p-3 z-20 pointer-events-auto w-16 items-center">
-                <ToolButton icon={<MovedIcon />} active={false} />
-                <ToolButton icon={<Pencil />} active={tool === 'pen'} onClick={() => setTool('pen')} />
-                <ToolButton icon={<Eraser />} active={tool === 'eraser'} onClick={() => setTool('eraser')} />
-
-                <div className="h-[1px] w-full bg-white/10 my-1" />
-
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white" title="Undo"><Undo size={20} /></button>
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-white" title="Redo"><Redo size={20} /></button>
-
-                <div className="mt-auto pt-4 flex flex-col items-center gap-2">
-                    {/* Brush Size Slider (Vertical) */}
-                    <div className="h-20 w-1 bg-white/10 rounded-full relative group cursor-pointer">
-                        <div className="absolute bottom-0 left-0 right-0 bg-primary rounded-full" style={{ height: `${width * 5}%` }} />
-                        {/* Invisible thumb for easier clicking */}
-                        <input
-                            type="range"
-                            min="1"
-                            max="20"
-                            value={width}
-                            onChange={(e) => setWidth(parseInt(e.target.value))}
-                            className="absolute -left-2 -right-2 top-0 bottom-0 opacity-0 cursor-pointer h-full w-full appearance-slider-vertical"
-                            style={{ writingMode: 'vertical-lr', direction: 'rtl' } as any}
-                        />
+                <div className="mt-auto">
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 text-center space-y-3">
+                        <div className="text-xs text-gray-300">Unlock more features with Pro</div>
+                        <Button size="sm" glow className="w-full">Upgrade</Button>
                     </div>
                 </div>
-            </GlassCard>
+            </aside>
 
-            {/* Right Sidebar: Colors & Layers */}
-            <div className="absolute right-4 top-24 bottom-24 w-64 flex flex-col gap-4 pointer-events-none z-20">
-                {/* Color Palette */}
-                <GlassCard className="pointer-events-auto flex-1 max-h-64 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-300">
-                        <Palette size={16} className="text-secondary" /> <span>COLORS</span>
-                    </div>
-                    <div className="grid grid-cols-5 gap-2">
-                        {['#00F0FF', '#FFD700', '#FF0055', '#A020F0', '#00FF00', '#FFFFFF', '#000000', '#333333', '#888888', '#CCCCCC'].map((c) => (
-                            <button
-                                key={c}
-                                className={clsx("w-8 h-8 rounded-full border border-white/10 hover:scale-110 transition-transform", color === c && "ring-2 ring-white ring-offset-2 ring-offset-transparent")}
-                                style={{ backgroundColor: c }}
-                                onClick={() => setColor(c)}
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col h-screen overflow-hidden">
+                {/* Header */}
+                <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-black/10 backdrop-blur-sm">
+                    <div className="flex-1 max-w-xl">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Search files, projects..."
+                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-primary/50 transition-colors"
                             />
-                        ))}
+                        </div>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-white/10">
-                        <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-full h-8 cursor-pointer rounded bg-transparent border-0" />
-                    </div>
-                </GlassCard>
 
-                {/* Layers Panel */}
-                <GlassCard className="pointer-events-auto flex-1 flex flex-col gap-2">
-                    <div className="flex items-center justify-between text-sm font-bold text-gray-300 pb-2 border-b border-white/10">
-                        <div className="flex items-center gap-2"><Layers size={16} className="text-purple-400" /> <span>LAYERS</span></div>
-                        <button><FilePlus size={16} /></button>
+                    <div className="flex items-center gap-4 ml-6">
+                        <div className="flex items-center gap-2 bg-white/5 rounded-lg p-1 border border-white/10">
+                            <button onClick={() => setView('grid')} className={clsx("p-1.5 rounded transition-colors", view === 'grid' ? "bg-white/10 text-white" : "text-gray-500 hover:text-white")}>
+                                <Grid size={16} />
+                            </button>
+                            <button onClick={() => setView('list')} className={clsx("p-1.5 rounded transition-colors", view === 'list' ? "bg-white/10 text-white" : "text-gray-500 hover:text-white")}>
+                                <List size={16} />
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                        {/* Mock Layers */}
-                        <LayerItem active name="Line Art" />
-                        <LayerItem name="Color Fill" />
-                        <LayerItem name="Sketch" visible={false} />
-                        <LayerItem name="Background" locked />
-                    </div>
-                </GlassCard>
-            </div>
+                </header>
 
-            {/* Mascot Helper */}
-            <div className="absolute bottom-4 right-4 z-10 animate-float pointer-events-none">
-                <img
-                    src={mascotImage}
-                    alt="Helper"
-                    className="w-32 h-32 object-contain drop-shadow-[0_0_15px_rgba(0,240,255,0.3)] opacity-80 scale-x-[-1]"
-                />
-            </div>
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+
+                    {/* Welcome / Create New */}
+                    <div className="mb-10 flex items-center justify-between">
+                        <h1 className="text-3xl font-bold">Your Projects</h1>
+                        <Button glow onClick={handleCreateProject} icon={<Plus size={18} />}>New Project</Button>
+                    </div>
+
+                    {/* Filter Tabs */}
+                    <div className="flex items-center gap-6 mb-6 border-b border-white/5 pb-2">
+                        <button className="text-sm font-medium text-white border-b-2 border-primary pb-2 -mb-2.5">Recently viewed</button>
+                        <button className="text-sm font-medium text-gray-500 hover:text-white transition-colors">Shared files</button>
+                        <button className="text-sm font-medium text-gray-500 hover:text-white transition-colors">Shared projects</button>
+                    </div>
+
+                    {/* Files Grid */}
+                    {loading ? (
+                        <div className="text-center text-gray-500 py-10">Loading projects...</div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {/* New Design Card */}
+                            <div
+                                onClick={handleCreateProject}
+                                className="group relative aspect-[4/3] rounded-xl border border-white/10 border-dashed bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3"
+                            >
+                                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                    <Plus size={24} />
+                                </div>
+                                <span className="font-medium text-gray-400 group-hover:text-white">New Design File</span>
+                            </div>
+
+                            {projects.map(project => (
+                                <FileCard key={project.id} file={project} onClick={() => navigate(`/editor/${project.id}`)} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };
 
-// Helper Components
-const ToolButton = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick?: () => void }) => (
-    <button
-        onClick={onClick}
-        className={clsx(
-            "p-3 rounded-xl transition-all duration-300",
-            active
-                ? "bg-primary text-black shadow-[0_0_15px_rgba(0,240,255,0.5)]"
-                : "text-gray-400 hover:text-white hover:bg-white/10"
-        )}
-    >
-        {React.cloneElement(icon as React.ReactElement<any>, { size: 24 })}
-    </button>
-);
+// Components
 
-const MovedIcon = () => <Move />;
-
-const LayerItem = ({ name, active = false, visible = true, locked = false }: { name: string, active?: boolean, visible?: boolean, locked?: boolean }) => (
-    <div className={clsx(
-        "flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors group",
-        active ? "bg-primary/20 border border-primary/30" : "hover:bg-white/5 border border-transparent",
-        !visible && "opacity-50"
-    )}>
-        <div className={clsx("w-4 h-4 rounded border border-white/20 bg-white/5", !visible && "bg-red-500/20")} /> {/* Visibility Toggle Mock */}
-        <span className={clsx("text-sm flex-1", active ? "text-white font-medium" : "text-gray-400")}>{name}</span>
-        {locked && <LockIcon size={12} className="text-gray-600" />}
+const DropdownItem = ({ icon, label, subtitle, onClick }: { icon: any, label: string, subtitle?: string, onClick?: () => void }) => (
+    <div onClick={onClick} className="flex items-center gap-3 px-4 py-2 hover:bg-white/5 cursor-pointer transition-colors group">
+        <div className="text-gray-400 group-hover:text-white">{icon}</div>
+        <div>
+            <div className="text-sm text-gray-200 group-hover:text-white">{label}</div>
+            {subtitle && <div className="text-xs text-gray-500">{subtitle}</div>}
+        </div>
     </div>
 );
 
-const LockIcon = ({ size, className }: { size: number, className?: string }) => <div className={className} style={{ fontSize: size }}>🔒</div>;
+const SidebarItem = ({ icon, label, active }: { icon: any, label: string, active?: boolean }) => (
+    <div className={clsx(
+        "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors",
+        active ? "bg-primary/10 text-primary font-medium" : "text-gray-400 hover:text-white hover:bg-white/5"
+    )}>
+        {icon}
+        <span className="text-sm">{label}</span>
+    </div>
+);
 
-
-
+const FileCard = ({ file, onClick }: { file: any, onClick: () => void }) => (
+    <div onClick={onClick} className="group cursor-pointer">
+        <div className={clsx("aspect-[4/3] rounded-t-xl overflow-hidden relative bg-[#1e1e24]")}>
+            {/* Preview Mockup */}
+            {file.preview ? (
+                <img src={file.preview} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+            ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-900/40 to-purple-900/40" />
+            )}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+        </div>
+        <div className="bg-[#1e1e24] p-3 rounded-b-xl border border-t-0 border-white/5 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-blue-500/20 rounded text-blue-400"><FileText size={14} /></div>
+                <div>
+                    <div className="text-sm font-medium text-gray-200 group-hover:text-primary transition-colors truncate max-w-[120px]">{file.name}</div>
+                    <div className="text-xs text-gray-500">{new Date(file.updated_at).toLocaleDateString()}</div>
+                </div>
+            </div>
+            <button className="text-gray-600 hover:text-white"><MoreHorizontal size={16} /></button>
+        </div>
+    </div>
+);

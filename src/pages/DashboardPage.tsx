@@ -58,6 +58,19 @@ export const DashboardPage = () => {
         isDrawing.current = false;
     };
 
+    const stageRef = React.useRef<any>(null);
+
+    const handleExport = () => {
+        if (!stageRef.current) return;
+        const uri = stageRef.current.toDataURL();
+        const link = document.createElement('a');
+        link.download = 'aurora-drawing.png';
+        link.href = uri;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="relative w-full h-screen overflow-hidden bg-[#1a1a2e]">
             {/* Background Grid - Aesthetic Only */}
@@ -70,6 +83,7 @@ export const DashboardPage = () => {
 
             {/* Canvas Layer */}
             <Stage
+                ref={stageRef}
                 width={dimensions.width}
                 height={dimensions.height}
                 onMouseDown={handleMouseDown}
@@ -108,7 +122,7 @@ export const DashboardPage = () => {
                     <div className="h-4 w-[1px] bg-white/20 mx-2" />
                     <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><FilePlus size={18} /></button>
                     <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Save size={18} /></button>
-                    <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Download size={18} /></button>
+                    <button onClick={handleExport} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Export as PNG"><Download size={18} /></button>
                 </GlassCard>
 
                 <GlassCard className="pointer-events-auto flex items-center gap-2 py-2 px-4 !rounded-full">

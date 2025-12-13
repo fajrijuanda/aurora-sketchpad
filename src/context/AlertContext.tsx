@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
-import { X, AlertCircle, CheckCircle, Info, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';

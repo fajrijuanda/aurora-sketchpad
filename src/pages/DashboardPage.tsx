@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Search, Plus, Grid, List, Clock, Folder, MoreHorizontal, FileText, ChevronDown, User, Settings, LogOut, Layout } from 'lucide-react';
@@ -198,7 +198,9 @@ export const DashboardPage = () => {
                     {/* Welcome / Create New */}
                     <div className="mb-10 flex items-center justify-between">
                         <h1 className="text-3xl font-bold">Your Projects</h1>
-                        <Button glow onClick={handleCreateProject} icon={<Plus size={18} />}>New Project</Button>
+                        <Button glow onClick={handleCreateProject}>
+                            <Plus size={18} /> New Project
+                        </Button>
                     </div>
 
                     {/* Filter Tabs */}

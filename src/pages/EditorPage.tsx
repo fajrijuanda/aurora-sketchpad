@@ -3,7 +3,7 @@ import { GlassCard } from '../components/ui/GlassCard';
 import { Stage, Layer, Line } from 'react-konva';
 import {
     Pencil, Eraser, Move, FilePlus,
-    Type, Menu
+    Type, Menu, Download
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -21,8 +21,8 @@ export const EditorPage = () => {
     const [tool, setTool] = useState<Tool>('pen');
     const [lines, setLines] = useState<Line[]>([]);
     const isDrawing = React.useRef(false);
-    const [color, setColor] = useState('#00F0FF'); // Default Cyan
-    const [width, setWidth] = useState(5);
+    const [color] = useState('#00F0FF'); // Default Cyan
+    const [width] = useState(5);
 
     // Canvas dimensions (would typically be dynamic or resize observer)
     const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -128,6 +128,9 @@ export const EditorPage = () => {
                 </GlassCard>
 
                 <div className="flex items-center gap-2">
+                    <button onClick={handleExport} className="p-2 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors" title="Export Image">
+                        <Download size={18} />
+                    </button>
                     <button className="px-3 py-1.5 text-xs font-medium bg-white/10 hover:bg-white/20 rounded-md transition-colors">Sign up</button>
                     <button className="p-2 hover:bg-white/10 rounded-full"><Menu size={18} /></button>
                 </div>

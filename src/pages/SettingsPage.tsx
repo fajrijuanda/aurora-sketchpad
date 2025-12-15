@@ -4,8 +4,14 @@ import { User, Settings, Moon, Sun, Camera, ArrowLeft, Save } from 'lucide-react
 import { useTheme } from '../context/ThemeContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { useAlert } from '../context/AlertContext';
+import { useAlert } from '../hooks/useAlert';
 import clsx from 'clsx';
+
+interface UserData {
+    name: string;
+    email: string;
+    avatar?: string;
+}
 
 export const SettingsPage = () => {
     const navigate = useNavigate();
@@ -14,7 +20,7 @@ export const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState<'profile' | 'preferences'>('profile');
 
     // Profile State
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<UserData | null>(null);
     const [name, setName] = useState('');
     const [avatar, setAvatar] = useState('');
     const [loading, setLoading] = useState(false);
@@ -59,11 +65,12 @@ export const SettingsPage = () => {
             } else {
                 throw new Error(data.error || 'Failed to update profile');
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
             showAlert({
                 type: 'danger',
                 title: 'Error',
-                message: err.message
+                message: errorMessage
             });
         } finally {
             setLoading(false);

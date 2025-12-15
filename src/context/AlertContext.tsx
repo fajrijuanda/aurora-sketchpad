@@ -1,36 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { GlassCard } from '../components/ui/GlassCard';
 import { AlertCircle, CheckCircle, Info } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
-
-type AlertType = 'success' | 'info' | 'danger' | 'warning';
-
-interface AlertOptions {
-    title?: string;
-    message: string;
-    type?: AlertType;
-    onConfirm?: () => void;
-    onCancel?: () => void;
-    confirmText?: string;
-    cancelText?: string;
-}
-
-interface AlertContextType {
-    showAlert: (options: AlertOptions) => void;
-    closeAlert: () => void;
-}
-
-const AlertContext = createContext<AlertContextType | undefined>(undefined);
-
-export const useAlert = () => {
-    const context = useContext(AlertContext);
-    if (!context) {
-        throw new Error('useAlert must be used within an AlertProvider');
-    }
-    return context;
-};
+import { AlertContext, type AlertOptions } from './AlertTypes';
 
 export const AlertProvider = ({ children }: { children: ReactNode }) => {
     const [alert, setAlert] = useState<AlertOptions | null>(null);

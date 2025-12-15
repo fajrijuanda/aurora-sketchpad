@@ -1,17 +1,30 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Search, Plus, Grid, List, Clock, Folder, MoreHorizontal, FileText, ChevronDown, User, Settings, LogOut, Layout } from 'lucide-react';
 import clsx from 'clsx';
-import { useAlert } from '../context/AlertContext';
+import { useAlert } from '../hooks/useAlert';
+
+interface Project {
+    id: string;
+    name: string;
+    preview?: string;
+    updated_at: string;
+}
+
+interface UserData {
+    name: string;
+    email: string;
+    avatar?: string;
+}
 
 export const DashboardPage = () => {
     const navigate = useNavigate();
     const { showAlert } = useAlert();
     const [view, setView] = useState<'grid' | 'list'>('grid');
-    const [projects, setProjects] = useState<any[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState<any>(null);
+    const [user, setUser] = useState<UserData | null>(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -239,7 +252,7 @@ export const DashboardPage = () => {
 
 // Components
 
-const DropdownItem = ({ icon, label, subtitle, onClick }: { icon: any, label: string, subtitle?: string, onClick?: () => void }) => (
+const DropdownItem = ({ icon, label, subtitle, onClick }: { icon: ReactNode, label: string, subtitle?: string, onClick?: () => void }) => (
     <div onClick={onClick} className="flex items-center gap-3 px-4 py-2 hover:bg-white/5 cursor-pointer transition-colors group">
         <div className="text-gray-400 group-hover:text-white">{icon}</div>
         <div>
@@ -249,7 +262,7 @@ const DropdownItem = ({ icon, label, subtitle, onClick }: { icon: any, label: st
     </div>
 );
 
-const SidebarItem = ({ icon, label, active }: { icon: any, label: string, active?: boolean }) => (
+const SidebarItem = ({ icon, label, active }: { icon: ReactNode, label: string, active?: boolean }) => (
     <div className={clsx(
         "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors",
         active ? "bg-primary/10 text-primary font-medium" : "text-gray-400 hover:text-white hover:bg-white/5"
@@ -259,7 +272,7 @@ const SidebarItem = ({ icon, label, active }: { icon: any, label: string, active
     </div>
 );
 
-const FileCard = ({ file, onClick }: { file: any, onClick: () => void }) => (
+const FileCard = ({ file, onClick }: { file: Project, onClick: () => void }) => (
     <div onClick={onClick} className="group cursor-pointer">
         <div className={clsx("aspect-[4/3] rounded-t-xl overflow-hidden relative bg-[#1e1e24]")}>
             {/* Preview Mockup */}

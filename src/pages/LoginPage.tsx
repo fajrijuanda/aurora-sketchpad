@@ -5,7 +5,7 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Mail, Lock, LogIn } from 'lucide-react';
-import { useAlert } from '../context/AlertContext';
+import { useAlert } from '../hooks/useAlert';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -49,8 +49,9 @@ export const LoginPage = () => {
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
             navigate('/dashboard');
-        } catch (err: any) {
-            if (err.message.includes('Email not verified')) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+            if (errorMessage.includes('Email not verified')) {
                 showAlert({
                     type: 'warning',
                     title: 'Account Not Verified',
@@ -62,7 +63,7 @@ export const LoginPage = () => {
                 showAlert({
                     type: 'danger',
                     title: 'Login Failed',
-                    message: err.message
+                    message: errorMessage
                 });
             }
         } finally {
